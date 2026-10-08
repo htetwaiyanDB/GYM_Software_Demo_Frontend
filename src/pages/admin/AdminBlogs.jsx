@@ -82,14 +82,86 @@ function statusBadge(status) {
   return <span className="badge rounded-pill bg-secondary-subtle text-secondary">Draft</span>;
 }
 
+function buildImageUrl(value) {
+  if (!value) return null;
+
+  if (typeof value === "object") {
+    return buildImageUrl(value.url || value.path || value.original_url || value.originalUrl);
+  }
+
+  const raw = String(value).trim();
+  if (!raw || ["attach photo", "attach image", "no image", "null"].includes(raw.toLowerCase())) {
+    return null;
+  }
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+
+  const apiBase = import.meta.env.VITE_API_URL || "https://api.unityfitnessmyanmar.online/api";
+  const origin = apiBase.replace(/\/api\/?$/, "");
+  const cleaned = raw.replace(/^\/+/, "").replace(/^public\//, "");
+  if (cleaned.startsWith("storage/")) return `${origin}/${cleaned}`;
+  if (cleaned.startsWith("blogs/")) return `${origin}/storage/${cleaned}`;
+  if (cleaned.startsWith("uploads/")) return `${origin}/${cleaned}`;
+  return `${origin}/storage/${cleaned}`;
+}
+
+function getCoverUrls(post) {
+  const values = [
+    post?.cover_image_url,
+    post?.coverImageUrl,
+    post?.cover_image_path,
+    post?.coverImagePath,
+    post?.cover_image,
+    post?.coverImage,
+    post?.cover,
+    post?.image_url,
+    post?.imageUrl,
+    post?.image_path,
+    post?.image,
+    post?.thumbnail_url,
+    post?.thumbnail_path,
+    post?.thumbnail,
+    post?.featured_image_url,
+    post?.featured_image,
+    post?.blog_image_url,
+    post?.blog_image,
+    post?.photo,
+  ];
+
+  return [...new Set(values.map(buildImageUrl).filter(Boolean))];
+}
+
 function resolveCoverUrl(post) {
+  return getCoverUrls(post)[0] || null;
+}
+
+function BlogCover({ post }) {
+  const urls = getCoverUrls(post);
+  const [urlIndex, setUrlIndex] = useState(0);
+  const src = urls[urlIndex];
+
   return (
-    post?.cover_image_url ||
-    post?.cover_image ||
-    post?.cover ||
-    post?.image_url ||
-    post?.image ||
-    null
+    <div
+      className="flex-shrink-0 rounded"
+      style={{
+        width: 88,
+        height: 58,
+        overflow: "hidden",
+        background: "rgba(255,255,255,0.08)",
+        display: "grid",
+        placeItems: "center",
+      }}
+    >
+      {src ? (
+        <img
+          src={src}
+          alt={`${safeText(post?.title) || "Blog post"} cover`}
+          onError={() => setUrlIndex((index) => index + 1)}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      ) : (
+        <span className="text-light small">No photo</span>
+      )}
+    </div>
   );
 }
 
@@ -600,13 +672,18 @@ export default function AdminBlogs() {
                 return (
                   <tr key={post?.id}>
                     <td>
-                      <div className="fw-semibold text-white">{safeText(post?.title)}</div>
-                      {post?.summary ? (
-                        <div className="text-light small" style={{ maxWidth: 640 }}>
-                          {safeText(post.summary).slice(0, 90)}
-                          {safeText(post.summary).length > 90 ? "..." : ""}
+                      <div className="d-flex align-items-center gap-3">
+                        <BlogCover post={post} />
+                        <div>
+                          <div className="fw-semibold text-white">{safeText(post?.title)}</div>
+                          {post?.summary ? (
+                            <div className="text-light small" style={{ maxWidth: 640 }}>
+                              {safeText(post.summary).slice(0, 90)}
+                              {safeText(post.summary).length > 90 ? "..." : ""}
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
+                      </div>
                     </td>
 
                     <td>{statusBadge(st)}</td>
