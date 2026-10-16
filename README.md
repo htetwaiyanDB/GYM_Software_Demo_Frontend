@@ -53,6 +53,10 @@ The frontend communicates with a backend API (Laravel-style JSON endpoints) and 
 
 5. Open the URL shown by Vite (typically `http://localhost:5173`).
 
+## Installable app (PWA)
+
+The app includes a web manifest, Winter Arc launch icons, and a service worker for the app shell. It can be installed from supported browsers on desktop, Android, and iOS when served from `localhost` or a secure HTTPS origin. The offline cache includes the frontend shell and built assets; API requests and account data still require a network connection.
+
 ## Environment variables
 
 Defined in `.env.example`:
